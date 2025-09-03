@@ -270,8 +270,30 @@ def main():
         print(f"Configuration: {CONFIG}")
         print("=" * 60)
         
-        # Step 1: Load and preprocess data
-        new_dataset, scaler, scaled_data = load_and_preprocess_data("NSE-TATA.csv")
+        # Step 1: Load and preprocess data using live data
+        print("📊 Fetching live stock data...")
+        import yfinance as yf
+        
+        # Try to get TATA stock data (using TATAMOTORS.NS for NSE)
+        ticker = "TATAMOTORS.NS"
+        df = yf.download(ticker, period="2y", interval="1d", progress=False)
+        
+        if df.empty:
+            # Fallback to a different stock if TATA is not available
+            print("TATA data not available, using AAPL as fallback...")
+            df = yf.download("AAPL", period="2y", interval="1d", progress=False)
+        
+        # Save the data temporarily for processing
+        temp_file = "temp_stock_data.csv"
+        df.to_csv(temp_file)
+        
+        try:
+            new_dataset, scaler, scaled_data = load_and_preprocess_data(temp_file)
+        finally:
+            # Clean up temporary file
+            import os
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
         
         # Step 2: Split data into training and validation sets
         train_size = int(len(new_dataset) * CONFIG['train_split'])
